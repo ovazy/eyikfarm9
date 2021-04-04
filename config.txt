@@ -1,7 +1,7 @@
 {
     "username": "Zupa1#1199",
     "password": "kmybe123",
-    "room": "#signal‌‌‌‌‌‌1 ",
+    "room": "#signal‌‌‌‌‌‌4 ",
     "community": "es",
     "premium_id": "j26zjxeo",
     "born_period": 2.99,
