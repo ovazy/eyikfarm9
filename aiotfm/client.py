@@ -28,7 +28,7 @@ logger = logging.getLogger('aiotfm')
 def get_data(xml, tag, reversed=False):
 	data = []
 
-	tags = re.compile("\<" + tag + "(.*?)/\>")
+	tags = re.compile(r"\<" + tag + r"(.*?)/\>")
 	for elem in tags.finditer(xml):
 		props = re.compile(r"(\-?\w+) ?= ?\"(\d+\.?\d*)\"")
 		coords = {}
@@ -112,7 +112,7 @@ class Client:
 		self._logged: bool = False
 		self._max_retries: int = max_retries
 
-		self.room: Room = None
+		self._room: Room = None
 		self.trade: Trade = None
 		self.trades: dict = {}
 		self.inventory: Inventory = None
@@ -429,11 +429,10 @@ class Client:
 			self.authkey = packet.read32()
 			self._logged = False
 
-			# await connection.send(Packet.new(176, 1).writeUTF(self.community.name))
+			await connection.send(Packet.new(176, 1).writeUTF(self.community.name))
 
-			os_info = Packet.new(28, 17).writeString('en').writeString('Linux')
-			os_info.writeString('LNX 29,0,0,140').write8(0)
-
+			os_info = Packet.new(28, 17).writeString('en').writeString('Windows 7')
+			os_info.writeString('WIN 10,3,183,90').write8(0)
 			await connection.send(os_info)
 
 			# :desc: Called when the client can login through the game.
@@ -861,6 +860,10 @@ class Client:
 				player.isShaman = False
 				self.dispatch('player_shaman_state_change', player)
 
+		elif CCC == (176, 7):
+			n = packet.read32()
+			await connection.send(Packet.new(176, 4).write32(n).writeUTF("---").write32(n).write16(22))
+
 		else:
 			if self.LOG_UNHANDLED_PACKETS:
 				print(CCC, bytes(packet.buffer)[2:])
@@ -1133,13 +1136,14 @@ class Client:
 		Sends the handshake packet so the server recognizes this socket as a player.
 		"""
 		packet = Packet.new(28, 1).write16(self.keys.version).writeString('en').writeString(self.keys.connection)
-		packet.writeString('Desktop').writeString('-').write32(0x1fbd).writeString('')
-		packet.writeString('74696720697320676f6e6e61206b696c6c206d7920626f742e20736f20736164')
+		packet.writeString('StandAlone').writeString('-').write32(0).writeString('')
+		packet.writeString('2fe6934614aaa670818d3f5fa001aa9b9279ca41fea6c36bb6083f42b35ac454')
 		packet.writeString(
-			"A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=t&PR=t&SP=f&SB=f&DEB=f&V=LNX 32,0,0,182&M=Adobe"
-			" Linux&R=1920x1080&COL=color&AR=1.0&OS=Linux&ARCH=x86&L=en&IME=t&PR32=t&PR64=t&LS=en-U"
-			"S&PT=Desktop&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72")
-		packet.write32(0).write32(0x6257).writeString('')
+			"A=t&SA=t&SV=t&EV=t&MP3=t&AE=t&VE=t&ACC=f&PR=t&SP=f&SB=f&DEB="
+			"f&V=WIN 10,3,183,90&M=Adobe Windows&R=1366x768&COL=color&AR=1.0&OS=Windows 7&ARC"
+			"H=x86&L=pt&IME=t&PR32=t&PR64=f&PT=StandAlone&AVD=f&LFD=f&WD=f&TLS=t&ML=5.1&DP=72"
+		)
+		packet.write32(0).write32(5246).writeString('')
 
 		await self.main.send(packet)
 
@@ -1284,7 +1288,6 @@ class Client:
 			packet.write8(0).writeString('')
 			packet.cipher(self.keys.identification)
 
-		await self.main.send(Packet.new(176, 1).writeUTF(self.community.name))
 		await self.main.send(packet.write8(0))
 
 	def run(self, username: str, password: str, **kwargs):

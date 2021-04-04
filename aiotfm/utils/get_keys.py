@@ -20,20 +20,17 @@ async def get_keys(client_id):
 	data = {}
 	payload = {"token": client_id}
 
-	try:
-		async with aiohttp.ClientSession() as session:                
-			async with session.get("https://tfmkeyparser.herokuapp.com/tfm_keys", params=payload) as response:
-				data = await response.json()
-	except aiohttp.client_exceptions.ClientConnectorError:
-		async with aiohttp.ClientSession() as session:                
-			async with session.get("https://tfmkeyparser-alt.herokuapp.com/tfm_keys", params=payload) as response:
-				data = await response.json()
+	async with aiohttp.ClientSession() as session:
+		try:
+			response = await session.get("https://tfmkeyparser.herokuapp.com/tfm_keys", params=payload)
+		except aiohttp.client_exceptions.ClientConnectorError:
+			response = await session.get("https://tfmkeyparser-alt.herokuapp.com/tfm_keys", params=payload)
+		else:
+			data = await response.json()
+			response.close()
 
-	success = data.pop("success", False)
-	error = data.pop("error", "").capitalize()
-
-	if not success:
-		raise EndpointError(error)
+	if not data.pop("success", False):
+		raise EndpointError(data.pop("error", "").capitalize())
 
 	keys = Keys(**data)
 	if len(keys.packet) > 0 and len(keys.identification) > 0 and len(keys.msg) > 0 and keys.version != 0:
